@@ -50,6 +50,23 @@ function pst:PrintPlayerDetails()
 	print("Total time played: " .. human_readable_time(total_time));
 end
 
+function pst:PrintRealmDetails()
+	print("Realm details:");
+	local realms = {}
+	for key,value in pairs(pst_global_data["players"]) do
+		realm = value["realm"]
+		if(realms[realm] == null) then
+			realms[realm] = value["seconds_played"];
+		else
+			realms[realm] = realms[realm] + value["seconds_played"];
+		end		
+	end	
+	for key,value in pairs(realms) do
+		print(key .. " - " .. human_readable_time(value));		
+	end
+end
+
+
 function pst:ReloadData()
 	print("Cleaning up Player stats data");
 	pst_global_data = null
