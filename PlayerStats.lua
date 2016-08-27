@@ -54,7 +54,7 @@ function pst:PrintPlayerDetails()
 	print("Player details:");
 	local total_time = 0
 	for key,value in pairs(pst_global_data["players"]) do
-		print("  " .. value["player_name"] .. " - " .. value["realm"] .. ": ".. human_readable_time(value["seconds_played"]) .. " Money: " .. human_readable_gold(value["gold"]));
+		print("  " .. value["player_name"] .. " - " .. value["realm"] .. ": ".. human_readable_time(value["seconds_played"]) .. " Gold: " .. human_readable_gold(value["gold"]));
 		total_time = total_time + value["seconds_played"];
 	end	
 	print("Total time played: " .. human_readable_time(total_time));
@@ -96,18 +96,20 @@ function pst:InitializeData()
 	end
 
 	-- Initialize character data
-	if(pst_character_data == null or pst:PlayerDataStale()) then
-		local player_name = UnitName("player");
-		pst_character_data = {}
-		pst_character_data["guid"]  = UnitGUID("player")
-		pst_character_data["player_name"] = player_name;
-		pst_character_data["realm"] = GetRealmName();
-		pst_character_data["gold"] = GetMoney();
-		pst_character_data["faction"] = UnitFactionGroup("player");
-		pst_character_data["seconds_played"] = 0;
+	local player_name = UnitName("player");
 
-		pst_global_data["players"][pst_character_data["guid"]] = pst_character_data;
+	if(pst_character_data == null or pst:PlayerDataStale()) then	
+		pst_character_data = {}
+		pst_character_data["seconds_played"] = 0;		
 	end
+
+	local guid = UnitGUID("player")
+	pst_character_data["guid"]  = guid
+	pst_character_data["player_name"] = player_name;
+	pst_character_data["realm"] = GetRealmName();
+	pst_character_data["gold"] = GetMoney();
+	pst_character_data["faction"] = UnitFactionGroup("player");
+	pst_global_data["players"][guid] = pst_character_data;
 
 	RequestTimePlayed();
 end
@@ -154,12 +156,21 @@ function human_readable_gold(copper)
 	copper = copper - silver * 100
 
 	buffer = {};
-	if(gold > 0) then
-		table.insert(buffer, gold .. "G");
+	if(gold > 1000000) then
+		table.insert(buffer, (round(gold / 100000) / 10) .. " M");
+	elseif(gold > 1000) then
+		table.insert(buffer, (round(gold / 100) / 10) .. " K");
+	elseif(gold > 0) then
+		table.insert(buffer, gold);
 	end
-	table.insert(buffer, silver .. "S");
-	table.insert(buffer, copper .. "C");
+	-- table.insert(buffer, silver .. "S");
+	-- table.insert(buffer, copper .. "C");
 
 	return table.concat(buffer, " ");
 end
 
+
+
+function round(x)
+  return x>=0 and math.floor(x+0.5) or math.ceil(x-0.5)
+end
