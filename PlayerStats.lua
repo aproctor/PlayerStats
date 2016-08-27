@@ -47,7 +47,7 @@ function pst:PrintPlayerDetails()
 		print("  " .. key .. " - " .. value["realm"] .. ": ".. human_readable_time(value["seconds_played"]));
 		total_time = total_time + value["seconds_played"];
 	end	
-	print("Total time played: " .. human_readable_time(total_time));
+	print("Account Wide Time Played: " .. human_readable_time(total_time));
 end
 
 function pst:PrintRealmDetails()
