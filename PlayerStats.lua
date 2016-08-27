@@ -19,10 +19,14 @@ function pst:ADDON_LOADED(...)
 	local addon = ...
 	if addon == "PlayerStats" then
 		pst:InitializeData();
-		-- pst:ReloadData();
-
-		-- Load up player time, gold and other stats
-		RequestTimePlayed();
+		
+		 -- make sure we don't overwrite default if someone decides to use same name
+		if not SlashCmdList["PLAYERSTATS"] then
+				SlashCmdList["PLAYERSTATS"] = function(msg)
+				   pst:handle_slashes(msg);
+				end -- end function
+				SLASH_PLAYERSTATS1 = "/pstats";
+		end		
 	end
 end
 
@@ -30,11 +34,18 @@ function pst:TIME_PLAYED_MSG(...)
 	local seconds = select(1,...)
 	
 	pst_character_data["seconds_played"] = seconds;
-	pst_global_data["players"][pst_character_data["player_name"]] = pst_character_data;
-
-	pst:PrintPlayerDetails();
+	pst_global_data["players"][pst_character_data["guid"]] = pst_character_data;
 end
 
+function pst:handle_slashes(message)
+	local command, args = message:match("^(%S*)%s*(.-)$");
+
+	if(command == "print" or command == "") then
+		self.PrintPlayerDetails();
+	elseif (command == "reload") then
+		self.ReloadData();
+	end
+end
 
 
 --- Commands
@@ -43,7 +54,7 @@ function pst:PrintPlayerDetails()
 	print("Player details:");
 	local total_time = 0
 	for key,value in pairs(pst_global_data["players"]) do
-		print("  " .. value["player_name"] .. " - " .. value["realm"] .. ": ".. human_readable_time(value["seconds_played"]));
+		print("  " .. value["player_name"] .. " - " .. value["realm"] .. ": ".. human_readable_time(value["seconds_played"]) .. " Money: " .. human_readable_gold(value["gold"]));
 		total_time = total_time + value["seconds_played"];
 	end	
 	print("Total time played: " .. human_readable_time(total_time));
@@ -70,7 +81,7 @@ function pst:ReloadData()
 	print("Cleaning up Player stats data");
 	pst_global_data = null
 	pst_character_data = null
-	pst:InitializeData();
+	pst:InitializeData();	
 end
 
 
@@ -91,11 +102,14 @@ function pst:InitializeData()
 		pst_character_data["guid"]  = UnitGUID("player")
 		pst_character_data["player_name"] = player_name;
 		pst_character_data["realm"] = GetRealmName();
+		pst_character_data["gold"] = GetMoney();
 		pst_character_data["faction"] = UnitFactionGroup("player");
 		pst_character_data["seconds_played"] = 0;
 
 		pst_global_data["players"][pst_character_data["guid"]] = pst_character_data;
 	end
+
+	RequestTimePlayed();
 end
 
 function pst:PlayerDataStale()
@@ -131,5 +145,21 @@ function human_readable_time(seconds)
   table.insert(buffer, minutes .. "m");
 
   return table.concat(buffer, " ");
+end
+
+function human_readable_gold(copper)
+	gold = math.floor (copper / 100 / 100)
+	copper = copper - gold * 100 * 100
+	silver = math.floor (copper / 100)
+	copper = copper - silver * 100
+
+	buffer = {};
+	if(gold > 0) then
+		table.insert(buffer, gold .. "G");
+	end
+	table.insert(buffer, silver .. "S");
+	table.insert(buffer, copper .. "C");
+
+	return table.concat(buffer, " ");
 end
 
