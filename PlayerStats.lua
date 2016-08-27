@@ -14,6 +14,7 @@ pst_frame:SetScript("OnEvent",
 function(self,event,...) 
 
 	 if event == "TIME_PLAYED_MSG" and (InScript) then
+	 	InScript = false;
 		print("Your play time on this character is <" ..  select(1, ...) .. "> seconds");
 	end
 end);
