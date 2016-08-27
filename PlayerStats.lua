@@ -23,7 +23,7 @@ function pst:PLAYER_LOGIN(...)
 			SlashCmdList["PLAYERSTATS"] = function(msg)
 			   pst:handle_slashes(msg);
 			end -- end function
-			SLASH_PLAYERSTATS1 = "/pstats";
+			SLASH_PLAYERSTATS1 = "/pst";
 	end		
 end
 
@@ -37,8 +37,21 @@ end
 function pst:handle_slashes(message)
 	local command, args = message:match("^(%S*)%s*(.-)$");
 
-	if(command == "print" or command == "") then
+	local known_commands = {};
+	known_commands["gold"] = "Shows the total gold from all known characters on the current realm";
+	known_commands["time"] = "Shows the total time played on all known characters";
+	known_commands["reload"] = "Resets all data, useful when upgrading pst versions if data is corrupted."
+	known_commands["help"] = "Shows this message";
+
+	if(command == "" or command == "help") then
+		DEFAULT_CHAT_FRAME:AddMessage("Player Stats usage:");
+		for k,v in pairs(known_commands) do 
+			DEFAULT_CHAT_FRAME:AddMessage("/pst " .. k .. " - " .. v);
+		end
+	elseif(command == "time" or command == "t") then
 		self.PrintPlayerDetails();
+	elseif (command == "gold" or command == "g") then
+		self.PrintGoldTotals();
 	elseif (command == "reload") then
 		self.ReloadData();
 	end
@@ -48,17 +61,31 @@ end
 --- Commands
 
 function pst:PrintPlayerDetails()
-	print("Player details:");
+	DEFAULT_CHAT_FRAME:AddMessage("Time Played:");
 	local total_time = 0
 	for key,value in pairs(pst_global_data["players"]) do
-		print("  " .. value["player_name"] .. " - " .. value["realm"] .. ": ".. human_readable_time(value["seconds_played"]) .. " Gold: " .. human_readable_gold(value["gold"]));
+		DEFAULT_CHAT_FRAME:AddMessage("  " .. value["player_name"] .. " - " .. value["realm"] .. ": ".. human_readable_time(value["seconds_played"]));
 		total_time = total_time + value["seconds_played"];
 	end	
-	print("Total time played: " .. human_readable_time(total_time));
+	DEFAULT_CHAT_FRAME:AddMessage("Total Time Played: " .. human_readable_time(total_time));
+end
+
+function pst:PrintGoldTotals()
+	local current_realm = pst_character_data["realm"];
+	local total_realm_gold = 0;
+	DEFAULT_CHAT_FRAME:AddMessage("Gold on all " .. current_realm .. " characters:")
+
+	for key,value in pairs(pst_global_data["players"]) do
+		if(value["realm"] == current_realm) then
+			DEFAULT_CHAT_FRAME:AddMessage("  " .. value["player_name"] .. " - " .. value["realm"] .. ": ".. human_readable_gold(value["gold"]));
+			total_realm_gold = total_realm_gold + value["gold"];
+		end
+	end	
+	DEFAULT_CHAT_FRAME:AddMessage("Total gold on " .. current_realm .. ": " .. human_readable_gold(total_realm_gold));
 end
 
 function pst:PrintRealmDetails()
-	print("Realm details:");
+	DEFAULT_CHAT_FRAME:AddMessage("Realm details:");
 	local realms = {}
 	for key,value in pairs(pst_global_data["players"]) do
 		realm = value["realm"]
@@ -69,13 +96,13 @@ function pst:PrintRealmDetails()
 		end		
 	end	
 	for key,value in pairs(realms) do
-		print(key .. " - " .. human_readable_time(value));		
+		DEFAULT_CHAT_FRAME:AddMessage(key .. " - " .. human_readable_time(value));		
 	end
 end
 
 
 function pst:ReloadData()
-	print("Cleaning up Player stats data");
+	DEFAULT_CHAT_FRAME:AddMessage("Cleaning up Player stats data");
 	pst_global_data = null
 	pst_character_data = null
 	pst:InitializeData();	
