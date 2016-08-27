@@ -23,8 +23,6 @@ function pst:ADDON_LOADED(...)
 
 		-- Load up player time, gold and other stats
 		RequestTimePlayed();
-
-		pst:PrintPlayerDetails();
 	end
 end
 
@@ -34,6 +32,8 @@ function pst:TIME_PLAYED_MSG(...)
 
 	pst_character_data["seconds_played"] = seconds;
 	pst_global_data["players"][pst_character_data["player_name"]] = pst_character_data;
+
+	pst:PrintPlayerDetails();
 end
 
 
@@ -44,10 +44,10 @@ function pst:PrintPlayerDetails()
 	print("Player details:");
 	local total_time = 0
 	for key,value in pairs(pst_global_data["players"]) do
-		print(key .. " - " .. value["realm"] .. ": ".. value["seconds_played"]);
+		print("  " .. key .. " - " .. value["realm"] .. ": ".. human_readable_time(value["seconds_played"]));
 		total_time = total_time + value["seconds_played"];
 	end	
-	print("Total time played: " .. total_time);
+	print("Total time played: " .. human_readable_time(total_time));
 end
 
 function pst:ReloadData()
@@ -69,7 +69,7 @@ function pst:InitializeData()
 	end
 
 	-- Initialize character data
-	if(pst_character_data == null) then
+	if(pst_character_data == null or pst:PlayerDataStale()) then
 		local player_name = UnitName("player");
 		pst_character_data = {}
 		pst_character_data["player_name"] = player_name;
@@ -80,8 +80,38 @@ function pst:InitializeData()
 	end
 end
 
+function pst:PlayerDataStale()
+	local expected_fields = {"player_name", "realm", "seconds_played"};
+	for i,field in ipairs(expected_fields) do 
+		if(pst_character_data[field] == null) then
+			return true;
+		end
+	end
+
+	return false;
+end
 
 
 
+--- Util Methods
 
+function human_readable_time(seconds)
+  days = math.floor (seconds / 3600 / 24);
+  seconds = seconds - (days * 3600 * 24);  
+  hours = math.floor (seconds / 3600);
+  seconds = seconds - (hours * 3600);
+  minutes = math.floor (seconds / 60);
+  seconds = math.floor (seconds - (minutes * 60));
+  
+  buffer = {};
+  if(days > 0) then
+  	table.insert(buffer, days .. "d");
+  end
+  if(hours > 0 or days > 0) then
+  	table.insert(buffer, hours .. "h");
+  end
+  table.insert(buffer, minutes .. "m");
+
+  return table.concat(buffer, " ");
+end
 
