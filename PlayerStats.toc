@@ -7,4 +7,3 @@
 ## SavedVariables: pst_global_data
 ## X-eMail: aproctor@gmail.com
 PlayerStats.lua
-PlayerStats.xml
