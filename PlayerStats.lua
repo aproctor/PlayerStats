@@ -28,8 +28,7 @@ end
 
 function pst:TIME_PLAYED_MSG(...)
 	local seconds = select(1,...)
-	print("You play time on this character is <" ..  seconds .. "> seconds");
-
+	
 	pst_character_data["seconds_played"] = seconds;
 	pst_global_data["players"][pst_character_data["player_name"]] = pst_character_data;
 
@@ -44,7 +43,7 @@ function pst:PrintPlayerDetails()
 	print("Player details:");
 	local total_time = 0
 	for key,value in pairs(pst_global_data["players"]) do
-		print("  " .. key .. " - " .. value["realm"] .. ": ".. human_readable_time(value["seconds_played"]));
+		print("  " .. value["player_name"] .. " - " .. value["realm"] .. ": ".. human_readable_time(value["seconds_played"]));
 		total_time = total_time + value["seconds_played"];
 	end	
 	print("Total time played: " .. human_readable_time(total_time));
@@ -89,11 +88,13 @@ function pst:InitializeData()
 	if(pst_character_data == null or pst:PlayerDataStale()) then
 		local player_name = UnitName("player");
 		pst_character_data = {}
+		pst_character_data["guid"]  = UnitGUID("player")
 		pst_character_data["player_name"] = player_name;
 		pst_character_data["realm"] = GetRealmName();
+		pst_character_data["faction"] = UnitFactionGroup("player");
 		pst_character_data["seconds_played"] = 0;
 
-		pst_global_data["players"][player_name] = pst_character_data;
+		pst_global_data["players"][pst_character_data["guid"]] = pst_character_data;
 	end
 end
 
