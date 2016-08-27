@@ -1,7 +1,7 @@
 --- Player Stats Addon
 local pst = {};
 local pst_frame = CreateFrame("Frame");
-pst_frame:RegisterEvent("ADDON_LOADED");
+pst_frame:RegisterEvent("PLAYER_LOGIN");
 pst_frame:RegisterEvent("TIME_PLAYED_MSG");
 
 --- All events will be reflected to pst
@@ -15,19 +15,16 @@ end)
 
 --- Event Methods
 
-function pst:ADDON_LOADED(...)
-	local addon = ...
-	if addon == "PlayerStats" then
-		pst:InitializeData();
-		
-		 -- make sure we don't overwrite default if someone decides to use same name
-		if not SlashCmdList["PLAYERSTATS"] then
-				SlashCmdList["PLAYERSTATS"] = function(msg)
-				   pst:handle_slashes(msg);
-				end -- end function
-				SLASH_PLAYERSTATS1 = "/pstats";
-		end		
-	end
+function pst:PLAYER_LOGIN(...)
+	pst:InitializeData();
+	
+	 -- make sure we don't overwrite default if someone decides to use same name
+	if not SlashCmdList["PLAYERSTATS"] then
+			SlashCmdList["PLAYERSTATS"] = function(msg)
+			   pst:handle_slashes(msg);
+			end -- end function
+			SLASH_PLAYERSTATS1 = "/pstats";
+	end		
 end
 
 function pst:TIME_PLAYED_MSG(...)
@@ -90,7 +87,6 @@ end
 function pst:InitializeData()
 	-- Initialize global data
 	if(pst_global_data == null) then
-		print("Initializing global data");
 		pst_global_data = {}
 		pst_global_data["players"] = {}			
 	end
@@ -103,8 +99,8 @@ function pst:InitializeData()
 		pst_character_data["seconds_played"] = 0;		
 	end
 
-	local guid = UnitGUID("player")
-	pst_character_data["guid"]  = guid
+	local guid = UnitGUID("player");
+	pst_character_data["guid"]  = guid;
 	pst_character_data["player_name"] = player_name;
 	pst_character_data["realm"] = GetRealmName();
 	pst_character_data["gold"] = GetMoney();
