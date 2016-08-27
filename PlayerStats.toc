@@ -1,0 +1,10 @@
+## Interface: 70000
+## Title: PlayerStats
+## Notes: Tracks user stats like time played and gold earned
+## Author: Adam Proctor
+## Version: 0.1
+## SavedVariablesPerCharacter: pst_character_data
+## SavedVariables: pst_global_data
+## X-eMail: aproctor@gmail.com
+PlayerStats.lua
+PlayerStats.xml
