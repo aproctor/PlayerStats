@@ -40,6 +40,7 @@ function pst:handle_slashes(message)
 	local known_commands = {};
 	known_commands["gold"] = "Shows the total gold from all known characters on the current realm";
 	known_commands["time"] = "Shows the total time played on all known characters";
+	known_commands["gear"] = "Shows the equipped and in bags ilvl of characters on the current realm";
 	known_commands["reload"] = "Resets all data, useful when upgrading pst versions if data is corrupted."
 	known_commands["help"] = "Shows this message";
 
@@ -54,6 +55,8 @@ function pst:handle_slashes(message)
 		self.PrintGoldTotals();
 	elseif (command == "reload") then
 		self.ReloadData();
+	elseif (command == "gear") then
+		self.PrintItemLevels();
 	end
 end
 
@@ -82,6 +85,25 @@ function pst:PrintGoldTotals()
 		end
 	end	
 	DEFAULT_CHAT_FRAME:AddMessage("Total gold on " .. current_realm .. ": " .. human_readable_gold(total_realm_gold));
+end
+
+function pst:PrintItemLevels()
+	local current_realm = pst_character_data["realm"];
+	DEFAULT_CHAT_FRAME:AddMessage("Character iLevels on " .. current_realm);
+
+	for key,value in pairs(pst_global_data["players"]) do
+		rarity = "FFFFFFFF" -- default to common
+		if(value["realm"] == current_realm) then			
+			if(value["bags_ilvl"]) then
+				if(value["equipped_ilvl"] > 400) then
+					rarity = "FFA335EE" -- epic
+				elseif(value["bags_ilvl"] > 350) then
+					rarity = "FF0070DD" -- rare					
+				end
+				DEFAULT_CHAT_FRAME:AddMessage(("  %s - |c%s%.2f |r(%.2f)"):format(value["player_name"], rarity, value["bags_ilvl"], value["equipped_ilvl"]));
+			end
+		end
+	end	
 end
 
 function pst:PrintRealmDetails()
@@ -127,11 +149,17 @@ function pst:InitializeData()
 	end
 
 	local guid = UnitGUID("player");
+	local bagsLvl, equippedLvl = GetAverageItemLevel()
+
+
 	pst_character_data["guid"]  = guid;
 	pst_character_data["player_name"] = player_name;
 	pst_character_data["realm"] = GetRealmName();
 	pst_character_data["gold"] = GetMoney();
 	pst_character_data["faction"] = UnitFactionGroup("player");
+	pst_character_data["equipped_ilvl"] = equippedLvl;
+	pst_character_data["bags_ilvl"] = bagsLvl;
+
 	pst_global_data["players"][guid] = pst_character_data;
 
 	RequestTimePlayed();
