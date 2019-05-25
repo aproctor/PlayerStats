@@ -3,6 +3,7 @@ local pst = {};
 local pst_frame = CreateFrame("Frame");
 pst_frame:RegisterEvent("PLAYER_LOGIN");
 pst_frame:RegisterEvent("TIME_PLAYED_MSG");
+pst_frame:RegisterEvent("UNIT_INVENTORY_CHANGED");
 
 --- All events will be reflected to pst
 pst_frame:SetScript("OnEvent",
@@ -32,6 +33,10 @@ function pst:TIME_PLAYED_MSG(...)
 	
 	pst_character_data["seconds_played"] = seconds;
 	pst_global_data["players"][pst_character_data["guid"]] = pst_character_data;
+end
+
+function pst:UNIT_INVENTORY_CHANGED(...)
+	pst:UpdateIlvls();
 end
 
 function pst:handle_slashes(message)
@@ -163,6 +168,20 @@ function pst:InitializeData()
 	pst_global_data["players"][guid] = pst_character_data;
 
 	RequestTimePlayed();
+end
+
+function pst:UpdateIlvls()
+	if(pst_character_data) then
+		local guid = UnitGUID("player");
+		local bagsLvl, equippedLvl = GetAverageItemLevel()
+
+		pst_character_data["seconds_played"] = seconds;
+		
+		pst_character_data["equipped_ilvl"] = equippedLvl;
+		pst_character_data["bags_ilvl"] = bagsLvl;
+
+		pst_global_data["players"][pst_character_data["guid"]] = pst_character_data;
+	end
 end
 
 function pst:PlayerDataStale()
