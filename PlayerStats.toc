@@ -1,4 +1,4 @@
-## Interface: 70000
+## Interface: 90001
 ## Title: PlayerStats
 ## Notes: Tracks user stats like time played and gold earned
 ## Author: Adam Proctor

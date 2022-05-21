@@ -3,6 +3,7 @@ local pst = {};
 local pst_frame = CreateFrame("Frame");
 pst_frame:RegisterEvent("PLAYER_LOGIN");
 pst_frame:RegisterEvent("TIME_PLAYED_MSG");
+pst_frame:RegisterEvent("UNIT_INVENTORY_CHANGED");
 
 --- All events will be reflected to pst
 pst_frame:SetScript("OnEvent",
@@ -34,13 +35,19 @@ function pst:TIME_PLAYED_MSG(...)
 	pst_global_data["players"][pst_character_data["guid"]] = pst_character_data;
 end
 
+function pst:UNIT_INVENTORY_CHANGED(...)
+	pst:UpdateIlvls();
+end
+
 function pst:handle_slashes(message)
 	local command, args = message:match("^(%S*)%s*(.-)$");
 
 	local known_commands = {};
 	known_commands["gold"] = "Shows the total gold from all known characters on the current realm";
 	known_commands["time"] = "Shows the total time played on all known characters";
+	known_commands["gear"] = "Shows the equipped and in bags ilvl of characters on the current realm";
 	known_commands["reload"] = "Resets all data, useful when upgrading pst versions if data is corrupted."
+	known_commands["io"] = "Shows Dungeon score"
 	known_commands["help"] = "Shows this message";
 
 	if(command == "" or command == "help") then
@@ -54,6 +61,10 @@ function pst:handle_slashes(message)
 		self.PrintGoldTotals();
 	elseif (command == "reload") then
 		self.ReloadData();
+	elseif (command == "gear") then
+		self.PrintItemLevels();
+	elseif (command == "io") then
+		self.PrintIo();
 	end
 end
 
@@ -65,7 +76,8 @@ function pst:PrintPlayerDetails()
 	local total_time = 0
 	for key,value in pairs(pst_global_data["players"]) do
 		DEFAULT_CHAT_FRAME:AddMessage("  " .. value["player_name"] .. " - " .. value["realm"] .. ": ".. human_readable_time(value["seconds_played"]));
-		total_time = total_time + value["seconds_played"];
+		seconds = value["seconds_played"] or 0
+		total_time = total_time + seconds;
 	end	
 	DEFAULT_CHAT_FRAME:AddMessage("Total Time Played: " .. human_readable_time(total_time));
 end
@@ -84,6 +96,42 @@ function pst:PrintGoldTotals()
 	DEFAULT_CHAT_FRAME:AddMessage("Total gold on " .. current_realm .. ": " .. human_readable_gold(total_realm_gold));
 end
 
+function pst:PrintItemLevels()
+	local current_realm = pst_character_data["realm"];
+	DEFAULT_CHAT_FRAME:AddMessage("Character iLevels on " .. current_realm);
+
+	local min_value = 99999;
+	local max_value = 0;
+	local realm_players = {};
+
+	for key,value in pairs(pst_global_data["players"]) do
+		rarity = "FFFFFFFF" -- default to common
+		if(value["realm"] == current_realm) then
+			local ival = value["bags_ilvl"];
+			if(ival) then
+				if(ival > max_value) then
+					max_value = ival;
+				end
+				if(ival < min_value) then
+					min_value = ival;
+				end
+				table.insert(realm_players, value);				
+			end
+		end
+	end	
+	--TODO use min level and max level to set auto thresholds of gear rarity?
+	table.sort(realm_players, function (v1, v2) return v1["bags_ilvl"] < v2["bags_ilvl"] end);
+	for key,value in pairs(realm_players) do
+		local ival = value["bags_ilvl"];
+		if(ival > 120) then
+			rarity = "FFA335EE" -- epic
+		elseif(ival > 110) then
+			rarity = "FF0070DD" -- rare					
+		end
+		DEFAULT_CHAT_FRAME:AddMessage(("  %s - |c%s%.2f |r(%.2f)"):format(value["player_name"], rarity, value["bags_ilvl"], value["equipped_ilvl"]));
+	end	
+end
+
 function pst:PrintRealmDetails()
 	DEFAULT_CHAT_FRAME:AddMessage("Realm details:");
 	local realms = {}
@@ -98,6 +146,38 @@ function pst:PrintRealmDetails()
 	for key,value in pairs(realms) do
 		DEFAULT_CHAT_FRAME:AddMessage(key .. " - " .. human_readable_time(value));		
 	end
+end
+
+function pst:PrintIo()
+	local current_realm = pst_character_data["realm"];
+	local min_value = 99999;
+	local max_value = 0;
+	local realm_players = {};
+
+	DEFAULT_CHAT_FRAME:AddMessage("Characters io on " .. current_realm);
+
+	for key,value in pairs(pst_global_data["players"]) do
+		rarity = "FFFFFFFF" -- default to common
+		if(value["realm"] == current_realm) then
+			local io_val= value["io"];
+			if(io_val) then
+				if(io_val > max_value) then
+					max_value = io_val;
+				end
+				if(io_val < min_value) then
+					min_value = io_val;
+				end
+				table.insert(realm_players, value);				
+			end
+		end
+	end	
+
+	table.sort(realm_players, function (v1, v2) return v1["io"] < v2["io"] end);
+	for key,value in pairs(realm_players) do
+		local io_val = value["io"];
+		rarity = C_ChallengeMode.GetDungeonScoreRarityColor(io_val):GenerateHexColor()
+		DEFAULT_CHAT_FRAME:AddMessage(("  %s - |c%s%i"):format(value["player_name"], rarity, value["io"]));
+	end	
 end
 
 
@@ -127,14 +207,35 @@ function pst:InitializeData()
 	end
 
 	local guid = UnitGUID("player");
+	local bagsLvl, equippedLvl = GetAverageItemLevel()
+
+
 	pst_character_data["guid"]  = guid;
 	pst_character_data["player_name"] = player_name;
 	pst_character_data["realm"] = GetRealmName();
 	pst_character_data["gold"] = GetMoney();
 	pst_character_data["faction"] = UnitFactionGroup("player");
+	pst_character_data["equipped_ilvl"] = equippedLvl;
+	pst_character_data["bags_ilvl"] = bagsLvl;
+	pst_character_data["io"] = C_ChallengeMode.GetOverallDungeonScore()
+
 	pst_global_data["players"][guid] = pst_character_data;
 
 	RequestTimePlayed();
+end
+
+function pst:UpdateIlvls()
+	if(pst_character_data) then
+		local guid = UnitGUID("player");
+		local bagsLvl, equippedLvl = GetAverageItemLevel()
+
+		pst_character_data["seconds_played"] = seconds;
+		
+		pst_character_data["equipped_ilvl"] = equippedLvl;
+		pst_character_data["bags_ilvl"] = bagsLvl;
+
+		pst_global_data["players"][pst_character_data["guid"]] = pst_character_data;
+	end
 end
 
 function pst:PlayerDataStale()
@@ -153,6 +254,9 @@ end
 --- Util Methods
 
 function human_readable_time(seconds)
+  if(seconds == nil) then
+  	return "nil"
+  end
   days = math.floor (seconds / 3600 / 24);
   seconds = seconds - (days * 3600 * 24);  
   hours = math.floor (seconds / 3600);
