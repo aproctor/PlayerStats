@@ -152,10 +152,12 @@ function pst:PrintItemLevels()
 	table.sort(realm_players, function (v1, v2) return v1["bags_ilvl"] < v2["bags_ilvl"] end);
 	for key,value in pairs(realm_players) do
 		local ival = value["bags_ilvl"];
-		if(ival > 120) then
+		if(ival > 268) then
 			rarity = "FFA335EE" -- epic
-		elseif(ival > 110) then
+		elseif(ival > 255) then
 			rarity = "FF0070DD" -- rare
+		elseif(ival > 242) then
+			rarity = "FF1EFF00" -- uncommon
 		end
 		DEFAULT_CHAT_FRAME:AddMessage(("  %s - |c%s%.2f |r(%.2f)"):format(value["player_name"], rarity, value["bags_ilvl"], value["equipped_ilvl"]));
 	end
